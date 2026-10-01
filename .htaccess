@@ -1,0 +1,12 @@
+# Top-level SmarCery .htaccess — protect non-public dirs when accessed directly.
+# Apache normally denies these because they're outside DocumentRoot, but if
+# someone configures a vhost that includes the project root, this adds safety.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+</IfModule>
+
+# Block any direct request for source files (defence in depth)
+<FilesMatch "\.(sql|json|cypher|md|lock|env)$">
+    Require all denied
+</FilesMatch>

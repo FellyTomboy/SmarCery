@@ -1,0 +1,22 @@
+# Public folder .htaccess — pass-through. Each PHP entry file is a standalone script.
+# This file mainly serves to set security headers.
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Block direct access to non-PHP, non-asset files
+<FilesMatch "\.(sql|json|cypher|md|lock|env|yml|yaml|ini)$">
+    Require all denied
+</FilesMatch>
+
+# Allow common asset types
+<FilesMatch "\.(css|js|jpg|jpeg|png|gif|svg|ico|webp|woff2?|ttf|eot)$">
+    Require all granted
+</FilesMatch>

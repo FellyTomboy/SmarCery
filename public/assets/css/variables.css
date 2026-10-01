@@ -1,0 +1,93 @@
+:root {
+    /* Brand */
+    --color-primary: #2C7A7B;
+    --color-primary-dark: #225E60;
+    --color-primary-light: #E6F2F2;
+    --color-accent: #F59E0B;
+    --color-accent-dark: #D97706;
+
+    /* Surfaces */
+    --color-bg: #FAFAF7;
+    --color-surface: #FFFFFF;
+    --color-surface-2: #F4F4EF;
+    --color-border: #E5E7EB;
+    --color-border-strong: #D1D5DB;
+
+    /* Text */
+    --color-text: #1F2937;
+    --color-text-soft: #4B5563;
+    --color-muted: #6B7280;
+    --color-link: #2C7A7B;
+
+    /* Status */
+    --color-success: #10B981;
+    --color-success-bg: #ECFDF5;
+    --color-warn: #F59E0B;
+    --color-warn-bg: #FFFBEB;
+    --color-danger: #DC2626;
+    --color-danger-bg: #FEF2F2;
+    --color-info: #3B82F6;
+    --color-info-bg: #EFF6FF;
+
+    /* Radii */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-pill: 9999px;
+
+    /* Shadow */
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, .04);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, .08);
+    --shadow-lg: 0 12px 32px rgba(15, 23, 42, .12);
+
+    /* Spacing */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    /* Typography */
+    --font-base: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-base: 16px;
+    --text-lg: 18px;
+    --text-xl: 20px;
+    --text-2xl: 24px;
+    --text-3xl: 30px;
+    --text-4xl: 36px;
+
+    /* Layout */
+    --container-max: 1200px;
+    --container-narrow: 720px;
+    --topbar-height: 64px;
+
+    /* Motion */
+    --ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --color-bg: #0F172A;
+        --color-surface: #1E293B;
+        --color-surface-2: #273449;
+        --color-border: #334155;
+        --color-border-strong: #475569;
+        --color-text: #F1F5F9;
+        --color-text-soft: #CBD5E1;
+        --color-muted: #94A3B8;
+        --color-primary-light: #1F4F50;
+        --color-success-bg: #022C22;
+        --color-warn-bg: #3F2B05;
+        --color-danger-bg: #3F0F0F;
+        --color-info-bg: #0C2A4E;
+    }
+}

@@ -1,0 +1,307 @@
+{
+    "_comment": "SmarCery sample products. Use IDs starting with 65f4e2 to match the references in seed_users.sql. Import via: mongoimport --db smarcery --collection products --file mongo_seed/seed_products.json --jsonArray",
+    "products": [
+        {
+            "_id": "65f4e2a000000000000000a1",
+            "category_id": 2,
+            "name": "Biskuit Coklat Gandum",
+            "brand": "Nabisco",
+            "barcode": "8991234567001",
+            "price": 15000,
+            "stock": 42,
+            "image_url": "/assets/img/products/biskuit-coklat.jpg",
+            "allergens": ["gluten", "telur", "susu"],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100g": {
+                    "calories": 480,
+                    "protein_g": 7,
+                    "fat_g": 20,
+                    "carbs_g": 65,
+                    "sugar_g": 28,
+                    "salt_g": 0.5
+                },
+                "ingredients": ["gandum", "gula", "minyak nabati", "kakao", "telur", "susu bubuk"],
+                "halal_certified": true,
+                "vegan": false
+            },
+            "tags": ["cokelat", "snack", "gandum"],
+            "is_active": true,
+            "popularity": 85,
+            "created_at": { "$date": "2026-01-15T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a2",
+            "name": "Kerupuk Udang Tradisional",
+            "category_id": 2,
+            "brand": "UD. Sumber Laut",
+            "barcode": "8991234567002",
+            "price": 8500,
+            "stock": 120,
+            "image_url": "/assets/img/products/kerupuk-udang.png",
+            "allergens": ["udang", "gluten"],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100g": {
+                    "calories": 380,
+                    "protein_g": 8,
+                    "fat_g": 1,
+                    "carbs_g": 85,
+                    "sugar_g": 2,
+                    "salt_g": 2.1
+                },
+                "ingredients": ["tepung tapioka", "udang", "garam", "gula"],
+                "halal_certified": true,
+                "vegan": false
+            },
+            "tags": ["udang", "snack", "tradisional"],
+            "is_active": true,
+            "popularity": 70,
+            "created_at": { "$date": "2026-02-01T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a3",
+            "name": "Biskuit Rice Crackers Vegan",
+            "category_id": 2,
+            "brand": "GreenBite",
+            "barcode": "8991234567003",
+            "price": 22000,
+            "stock": 60,
+            "image_url": "/assets/img/products/rice-crackers.png",
+            "allergens": ["kedelai"],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100g": {
+                    "calories": 410,
+                    "protein_g": 6,
+                    "fat_g": 8,
+                    "carbs_g": 80,
+                    "sugar_g": 4,
+                    "salt_g": 0.7
+                },
+                "ingredients": ["beras", "minyak nabati", "kedelai", "garam"],
+                "halal_certified": true,
+                "vegan": true
+            },
+            "tags": ["vegan", "rice", "snack"],
+            "is_active": true,
+            "popularity": 65,
+            "created_at": { "$date": "2026-02-10T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a4",
+            "name": "Kopi Sachihasta",
+            "category_id": 5,
+            "brand": "Sachihasta",
+            "barcode": "8991234567004",
+            "price": 15000,
+            "stock": 200,
+            "image_url": "/assets/img/products/kopi-sachet.png",
+            "allergens": [],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100g": {
+                    "calories": 2,
+                    "protein_g": 0.1,
+                    "fat_g": 0,
+                    "carbs_g": 0.5,
+                    "sugar_g": 0,
+                    "salt_g": 0
+                },
+                "ingredients": ["kopi bubuk"],
+                "halal_certified": true,
+                "vegan": true
+            },
+            "tags": ["kopi", "minuman", "vegan"],
+            "is_active": true,
+            "popularity": 90,
+            "created_at": { "$date": "2026-01-05T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a5",
+            "name": "Susu UHT Fullcream 1L",
+            "category_id": 5,
+            "brand": "Greenfields",
+            "barcode": "8991234567005",
+            "price": 28000,
+            "stock": 75,
+            "image_url": "/assets/img/products/susu-uht.png",
+            "allergens": ["susu"],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100ml": {
+                    "calories": 60,
+                    "protein_g": 3.2,
+                    "fat_g": 3.5,
+                    "carbs_g": 4.7,
+                    "sugar_g": 4.7,
+                    "salt_g": 0.1
+                },
+                "ingredients": ["susu sapi", "vitamin D"],
+                "halal_certified": true,
+                "vegan": false
+            },
+            "tags": ["susu", "minuman", "kalsium"],
+            "is_active": true,
+            "popularity": 88,
+            "created_at": { "$date": "2026-01-12T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a6",
+            "name": "Bumbu Dapur Lengkap 8in1",
+            "category_id": 3,
+            "brand": "Dapur Mama",
+            "barcode": "8991234567006",
+            "price": 32000,
+            "stock": 50,
+            "image_url": "/assets/img/products/bumbu-lengkap.png",
+            "allergens": ["kedelai"],
+            "attributes": {
+                "type": "food",
+                "ingredients": ["bawang", "lada", "ketumbar", "jintan", "kedelai"],
+                "halal_certified": true,
+                "vegan": true,
+                "shelf_life_days": 365
+            },
+            "tags": ["bumbu", "dapur", "vegan"],
+            "is_active": true,
+            "popularity": 60,
+            "created_at": { "$date": "2026-02-15T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a7",
+            "name": "Beras Premium 5kg",
+            "category_id": 4,
+            "brand": "Padi Mas",
+            "barcode": "8991234567007",
+            "price": 75000,
+            "stock": 35,
+            "image_url": "/assets/img/products/beras-premium.png",
+            "allergens": [],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100g": {
+                    "calories": 360,
+                    "protein_g": 7,
+                    "fat_g": 0.7,
+                    "carbs_g": 79,
+                    "sugar_g": 0.1,
+                    "salt_g": 0
+                },
+                "ingredients": ["beras"],
+                "halal_certified": true,
+                "vegan": true,
+                "weight_g": 5000
+            },
+            "tags": ["beras", "pokok", "vegan"],
+            "is_active": true,
+            "popularity": 95,
+            "created_at": { "$date": "2026-01-20T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a8",
+            "name": "Apel Fuji",
+            "category_id": 7,
+            "brand": "Local Farmer",
+            "barcode": "8991234567008",
+            "price": 35000,
+            "stock": 80,
+            "image_url": "/assets/img/products/apel-fuji.png",
+            "allergens": [],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100g": {
+                    "calories": 52,
+                    "protein_g": 0.3,
+                    "fat_g": 0.2,
+                    "carbs_g": 14,
+                    "sugar_g": 10,
+                    "salt_g": 0
+                },
+                "ingredients": ["apel fuji"],
+                "halal_certified": true,
+                "vegan": true,
+                "weight_g": 1000,
+                "origin": "Indonesia"
+            },
+            "tags": ["buah", "segar", "vegan"],
+            "is_active": true,
+            "popularity": 78,
+            "created_at": { "$date": "2026-03-01T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000a9",
+            "name": "Brokoli Organik 500g",
+            "category_id": 8,
+            "brand": "Sayur Sehat",
+            "barcode": "8991234567009",
+            "price": 22000,
+            "stock": 40,
+            "image_url": "/assets/img/products/brokoli.png",
+            "allergens": [],
+            "attributes": {
+                "type": "food",
+                "nutrition_per_100g": {
+                    "calories": 34,
+                    "protein_g": 2.8,
+                    "fat_g": 0.4,
+                    "carbs_g": 7,
+                    "sugar_g": 1.7,
+                    "salt_g": 0
+                },
+                "ingredients": ["brokoli"],
+                "halal_certified": true,
+                "vegan": true,
+                "weight_g": 500,
+                "organic": true
+            },
+            "tags": ["sayur", "segar", "vegan", "organik"],
+            "is_active": true,
+            "popularity": 55,
+            "created_at": { "$date": "2026-03-05T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000aa",
+            "name": "Sabun Mandi Cair Sensitif",
+            "category_id": 11,
+            "brand": "CareShine",
+            "barcode": "8991234567010",
+            "price": 35000,
+            "stock": 60,
+            "image_url": "/assets/img/products/sabun-cair.png",
+            "allergens": [],
+            "attributes": {
+                "type": "non-food",
+                "volume_ml": 500,
+                "skin_type": ["sensitif", "kering"],
+                "ingredients": ["aqua", "glycerin", "cocamidopropyl betaine", "fragrance"],
+                "fragrance_free": false
+            },
+            "tags": ["sabun", "perawatan", "sensitif"],
+            "is_active": true,
+            "popularity": 50,
+            "created_at": { "$date": "2026-02-20T08:00:00Z" }
+        },
+        {
+            "_id": "65f4e2a000000000000000ab",
+            "name": "Deterjen Cair Premium 1L",
+            "category_id": 14,
+            "brand": "CleanPro",
+            "barcode": "8991234567011",
+            "price": 42000,
+            "stock": 45,
+            "image_url": "/assets/img/products/deterjen.png",
+            "allergens": [],
+            "attributes": {
+                "type": "non-food",
+                "volume_ml": 1000,
+                "scent": "lavender",
+                "ingredients": ["surfactant", "enzim", "fragrance"]
+            },
+            "tags": ["deterjen", "rumah tangga"],
+            "is_active": true,
+            "popularity": 62,
+            "created_at": { "$date": "2026-02-25T08:00:00Z" }
+        }
+    ]
+}
