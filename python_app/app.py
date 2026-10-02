@@ -389,7 +389,17 @@ def admin_dashboard():
 @app.get(f"{BASE_PATH}/user/dashboard.php")
 @login_required
 def user_dashboard():
-    return render_template("dashboard.html", admin=False, products=products_from_mongo(limit=12), title="Beranda")
+    query_text = request.args.get("q", "").strip()
+    query = None
+    if query_text:
+        query = {
+            "$or": [
+                {"name": {"$regex": query_text, "$options": "i"}},
+                {"brand": {"$regex": query_text, "$options": "i"}},
+                {"attributes.composition": {"$regex": query_text, "$options": "i"}},
+            ]
+        }
+    return render_template("dashboard.html", admin=False, products=products_from_mongo(query=query, limit=12), query=query_text, title="Beranda")
 
 
 @app.route(f"{BASE_PATH}/admin/products.php", methods=["GET", "POST"])
@@ -522,7 +532,17 @@ def admin_product_form():
 @app.get(f"{BASE_PATH}/user/browse.php")
 @login_required
 def browse():
-    return render_template("products.html", products=products_from_mongo(), title="Katalog")
+    query_text = request.args.get("q", "").strip()
+    query = None
+    if query_text:
+        query = {
+            "$or": [
+                {"name": {"$regex": query_text, "$options": "i"}},
+                {"brand": {"$regex": query_text, "$options": "i"}},
+                {"attributes.composition": {"$regex": query_text, "$options": "i"}},
+            ]
+        }
+    return render_template("products.html", products=products_from_mongo(query=query), query=query_text, title="Katalog")
 
 
 @app.get(f"{BASE_PATH}/user/product.php")

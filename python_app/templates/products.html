@@ -1,2 +1,7 @@
 {% extends 'base.html' %}
-{% block content %}<div class="d-flex justify-content-between align-items-center mb-4"><h1 class="h2">{{ title }}</h1><span class="badge text-bg-primary">{{ products|length }} produk</span></div><div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">{% for product in products %}<div class="col">{% include '_product_card.html' %}</div>{% else %}<div class="col"><div class="alert alert-info">Belum ada produk.</div></div>{% endfor %}</div>{% endblock %}
+{% block content %}
+<div class="page-heading mb-4"><div><span class="eyebrow-label">KATALOG PRODUK</span><h1 class="h2 mb-1">Cari makanan</h1><p class="text-secondary mb-0">Pahami nutrisi dan komposisi sebelum memilih.</p></div><span class="data-count">{{ products|length }} hasil</span></div>
+<form class="analysis-search" action="{{ url('/user/browse.php') }}" method="get"><i class="bi bi-search"></i><input name="q" value="{{ query or '' }}" placeholder="Cari nama, merek, atau bahan..." aria-label="Cari produk"><button class="btn btn-primary" type="submit">Cari</button></form>
+<div class="quick-row"><span class="section-kicker">Filter cepat</span><a class="data-chip active" href="{{ url('/user/browse.php') }}">Semua</a><a class="data-chip" href="{{ url('/user/profile.php') }}">Preferensi alergen</a></div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">{% for product in products %}<div class="col">{% include '_product_card.html' %}</div>{% else %}<div class="col-12"><div class="empty-state">Tidak ada produk yang cocok dengan pencarian.</div></div>{% endfor %}</div>
+{% endblock %}
