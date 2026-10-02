@@ -352,6 +352,33 @@ def admin_product_form():
             "vegan": request.form.get("vegan") == "1",
             "halal_certified": request.form.get("halal") == "1",
         })
+        composition = [
+            item.strip()
+            for item in request.form.get("composition", "").splitlines()
+            if item.strip()
+        ]
+        if composition:
+            attributes["composition"] = composition
+        else:
+            attributes.pop("composition", None)
+        nutrition_values = {}
+        nutrition_basis = request.form.get("nutrition_basis", "").strip()
+        for key in ("calories_kcal", "protein_g", "fat_g", "carbohydrates_g", "sugar_g", "sodium_mg"):
+            value = request.form.get(f"nutrition_{key}", "").strip()
+            if value:
+                try:
+                    nutrition_values[key] = float(value)
+                except ValueError:
+                    flash(f"Nilai nutrisi {key} harus berupa angka.", "danger")
+        old_nutrition_keys = ("nutrition_per_100g", "nutrition_per_100ml")
+        for key in old_nutrition_keys:
+            attributes.pop(key, None)
+        if nutrition_values or nutrition_basis:
+            nutrition_values["basis"] = nutrition_basis or "unknown"
+            nutrition_key = "nutrition_per_100ml" if "100ml" in nutrition_basis.casefold() else "nutrition_per_100g"
+            attributes[nutrition_key] = nutrition_values
+        if request.form.get("clear_ai_analysis") == "1":
+            attributes.pop("ai_analysis", None)
         fields = {
             "name": request.form.get("name", "").strip(),
             "brand": request.form.get("brand", "").strip(),
