@@ -13,6 +13,7 @@ from bson import ObjectId
 from dotenv import load_dotenv
 from flask import (
     Flask,
+    abort,
     flash,
     jsonify,
     redirect,
@@ -211,10 +212,9 @@ def admin_required(view):
     def wrapped(*args, **kwargs):
         user = current_user()
         if not user:
-            return redirect(url("/login.php"))
+            abort(401)
         if user["role"] != "admin":
-            flash("Akses hanya untuk admin.", "danger")
-            return redirect(url("/user/dashboard.php"))
+            abort(403)
         return view(*args, **kwargs)
 
     return wrapped
@@ -223,6 +223,16 @@ def admin_required(view):
 @app.context_processor
 def template_helpers():
     return {"url": url, "user": current_user()}
+
+
+@app.errorhandler(401)
+def unauthorized(error):
+    return render_template("error.html", code=401, title="Autentikasi diperlukan", message="Silakan masuk terlebih dahulu untuk membuka halaman ini."), 401
+
+
+@app.errorhandler(403)
+def forbidden(error):
+    return render_template("error.html", code=403, title="Akses ditolak", message="Akun Anda tidak memiliki izin untuk membuka halaman ini."), 403
 
 
 def url(path):
@@ -246,6 +256,9 @@ def index():
 
 @app.route(f"{BASE_PATH}/login.php", methods=["GET", "POST"])
 def login():
+    if current_user() and request.method == "GET":
+        destination = "/admin/dashboard.php" if current_user()["role"] == "admin" else "/user/dashboard.php"
+        return redirect(url(destination))
     error = None
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()

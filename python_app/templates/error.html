@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card border-0 shadow-sm text-center">
+      <div class="card-body p-5">
+        <div class="display-5 fw-bold text-success mb-2">{{ code }}</div>
+        <h1 class="h3 mb-3">{{ title }}</h1>
+        <p class="text-secondary">{{ message }}</p>
+        {% if code == 401 %}<a class="btn btn-primary" href="{{ url('/login.php') }}">Masuk ke akun</a>{% else %}<a class="btn btn-primary" href="{{ url('/user/dashboard.php') }}">Kembali ke beranda</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
