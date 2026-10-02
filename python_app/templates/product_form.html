@@ -8,8 +8,8 @@
 <form method="post" enctype="multipart/form-data" class="card product-editor border-0 shadow-sm p-4 p-md-5">
   <div class="editor-section-heading"><i class="bi bi-box-seam"></i><div><h2>Informasi produk</h2><p>Data utama yang tampil di katalog.</p></div></div>
   <div class="row g-3">
-    <div class="col-md-8"><label class="form-label">Nama<input class="form-control" name="name" required value="{{ product.name if editing else '' }}"></label></div>
-    <div class="col-md-4"><label class="form-label">Merek<input class="form-control" name="brand" value="{{ product.brand if editing else '' }}"></label></div>
+    <div class="col-md-6"><label class="form-label">Nama<input class="form-control" name="name" required value="{{ product.name if editing else '' }}"></label></div>
+    <div class="col-md-6"><label class="form-label">Merek<input class="form-control" name="brand" value="{{ product.brand if editing else '' }}"></label></div>
     <div class="col-md-4"><label class="form-label">Kategori<select class="form-select" name="category_id">{% for category in categories %}<option value="{{ category.id }}" {% if editing and product.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></label></div>
     <div class="col-md-4"><label class="form-label">Harga<input class="form-control" type="number" name="price" step="0.01" value="{{ product.price if editing else 0 }}"></label></div>
     <div class="col-md-4"><label class="form-label">Stok<input class="form-control" type="number" name="stock" value="{{ product.stock if editing else 0 }}"></label></div>
