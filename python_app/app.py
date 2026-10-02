@@ -54,6 +54,13 @@ def mongo_collection(name="products"):
     client = MongoClient(os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017"))
     return client.smarcery[name]
 
+def find_product_by_id(product_id):
+    candidates = [product_id]
+    try:
+        candidates.insert(0, ObjectId(product_id))
+    except Exception:
+        pass
+    return mongo_collection().find_one({"_id": {"$in": candidates}})
 
 def save_product_image(upload):
     if not upload or not upload.filename:
@@ -424,10 +431,11 @@ def user_dashboard():
 @admin_required
 def admin_products():
     if request.method == "POST" and request.form.get("action") == "delete":
-        try:
-            mongo_collection().delete_one({"_id": ObjectId(request.form.get("product_id", ""))})
+        product = find_product_by_id(request.form.get("product_id", "").strip())
+        if product:
+            mongo_collection().delete_one({"_id": product["_id"]})
             flash("Produk dihapus.", "success")
-        except Exception:
+        else:
             flash("ID produk tidak valid.", "danger")
         return redirect(url("/admin/products.php"))
     return render_template("admin_products.html", products=products_from_mongo(), title="Produk")
@@ -436,15 +444,14 @@ def admin_products():
 @app.route(f"{BASE_PATH}/admin/product_form.php", methods=["GET", "POST"])
 @admin_required
 def admin_product_form():
-    product_id = request.args.get("id", "")
+    product_id = request.args.get("id", "").strip()
     existing = None
     if product_id:
-        try:
-            existing = mongo_collection().find_one({"_id": ObjectId(product_id)})
-            if existing:
-                existing["image_urls"] = product_image_urls(existing)
-        except Exception:
-            existing = None
+        existing = find_product_by_id(product_id)
+        if not existing:
+            flash("Produk tidak ditemukan.", "danger")
+            return redirect(url("/admin/products.php"))
+        existing["image_urls"] = product_image_urls(existing)
     if request.method == "POST":
         attributes = dict((existing or {}).get("attributes") or {})
         attributes.update({
@@ -566,11 +573,7 @@ def browse():
 @app.get(f"{BASE_PATH}/user/product.php")
 @login_required
 def product_detail():
-    product_id = request.args.get("id", "")
-    try:
-        product = mongo_collection().find_one({"_id": ObjectId(product_id)})
-    except Exception:
-        product = None
+    product = find_product_by_id(request.args.get("id", "").strip())
     if not product:
         return redirect(url("/user/browse.php"))
     product["_id"] = str(product["_id"])
