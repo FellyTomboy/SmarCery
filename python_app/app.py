@@ -1,4 +1,7 @@
+import base64
+import json
 import os
+import re
 import uuid
 from functools import wraps
 from pathlib import Path
@@ -75,6 +78,79 @@ def delete_product_image(image_url):
     filename = Path(image_url).name
     if filename:
         (UPLOAD_FOLDER / filename).unlink(missing_ok=True)
+
+
+def analyze_product_image(image_url, product_type):
+    api_key = os.getenv("AI_GATEWAY_API_KEY")
+    if not api_key:
+        raise ValueError("AI_GATEWAY_API_KEY belum dikonfigurasi.")
+    image_path = UPLOAD_FOLDER / Path(image_url).name
+    image_data = base64.b64encode(image_path.read_bytes()).decode("ascii")
+    mime_type = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }[image_path.suffix.lower()]
+    endpoint = os.getenv(
+        "AI_GATEWAY_BASE_URL", "https://gateway.olagon.site/anthropic"
+    ).rstrip("/") + "/v1/messages"
+    response = requests.post(
+        endpoint,
+        headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        json={
+            "model": os.getenv("AI_GATEWAY_MODEL", "claude-opus-4-7"),
+            "max_tokens": 1600,
+            "temperature": 0,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": mime_type,
+                                "data": image_data,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "Baca label kemasan produk "
+                                f"{product_type} ini. Ekstrak komposisi dan informasi "
+                                "nutrisi yang terlihat. Jangan mengarang nilai yang "
+                                "tidak terbaca. Balas HANYA JSON valid dengan schema: "
+                                '{"composition":["..."],"nutrition":{"basis":"per 100g|per 100ml|per sajian|unknown",'
+                                '"calories_kcal":null,"protein_g":null,"fat_g":null,"carbohydrates_g":null,'
+                                '"sugar_g":null,"sodium_mg":null},"allergens":["telur|susu|gluten|'
+                                'kacang|kedelai|ikan|udang|kerang|wijen|sulfit"],'
+                                '"confidence":"high|medium|low","notes":"..."}. '
+                                "Gunakan null jika tidak tersedia dan gunakan bahasa Indonesia."
+                            ),
+                        },
+                    ],
+                }
+            ],
+        },
+        timeout=120,
+    )
+    if not response.ok:
+        raise ValueError(f"AI gateway gagal ({response.status_code}).")
+    blocks = response.json().get("content", [])
+    text = "".join(block.get("text", "") for block in blocks if block.get("type") == "text")
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        raise ValueError("AI tidak mengembalikan JSON yang valid.")
+    result = json.loads(text[start : end + 1])
+    if not isinstance(result.get("composition"), list) or not isinstance(result.get("nutrition"), dict):
+        raise ValueError("Format hasil AI tidak sesuai.")
+    return result
 
 
 @app.get(f"{BASE_PATH}/uploads/<path:filename>")
@@ -262,6 +338,12 @@ def admin_product_form():
         except Exception:
             existing = None
     if request.method == "POST":
+        attributes = dict((existing or {}).get("attributes") or {})
+        attributes.update({
+            "type": "food",
+            "vegan": request.form.get("vegan") == "1",
+            "halal_certified": request.form.get("halal") == "1",
+        })
         fields = {
             "name": request.form.get("name", "").strip(),
             "brand": request.form.get("brand", "").strip(),
@@ -272,7 +354,7 @@ def admin_product_form():
             "is_active": request.form.get("is_active") == "1",
             "popularity": int(request.form.get("popularity", 0) or 0),
             "allergens": [a for a in request.form.get("allergens", "").split(",") if a.strip()],
-            "attributes": {"type": "food", "vegan": request.form.get("vegan") == "1", "halal_certified": request.form.get("halal") == "1"},
+            "attributes": attributes,
         }
         if not fields["name"]:
             flash("Nama produk wajib diisi.", "danger")
@@ -284,6 +366,31 @@ def admin_product_form():
                 flash(str(error), "danger")
             else:
                 fields["image_url"] = image_url or (existing or {}).get("image_url")
+                if request.form.get("analyze_image") == "1":
+                    if not image_url:
+                        flash("Pilih foto baru untuk dianalisis AI.", "warning")
+                    else:
+                        try:
+                            product_type = "minuman" if fields["category_id"] == 5 else "makanan"
+                            analysis = analyze_product_image(image_url, product_type)
+                            attributes["composition"] = analysis["composition"]
+                            nutrition = analysis["nutrition"]
+                            basis = str(nutrition.get("basis", "")).casefold()
+                            nutrition_key = (
+                                "nutrition_per_100ml" if "100ml" in basis else "nutrition_per_100g"
+                            )
+                            attributes[nutrition_key] = nutrition
+                            attributes["ai_analysis"] = {
+                                "model": os.getenv("AI_GATEWAY_MODEL", "claude-opus-4-7"),
+                                "confidence": analysis.get("confidence"),
+                                "notes": analysis.get("notes", ""),
+                            }
+                            if analysis.get("allergens"):
+                                fields["allergens"] = analysis["allergens"]
+                            flash("Komposisi dan nutrisi berhasil dianalisis AI.", "success")
+                        except (OSError, ValueError, requests.RequestException, json.JSONDecodeError) as error:
+                            flash(f"Foto tersimpan, tetapi analisis AI gagal: {error}", "warning")
+                    fields["attributes"] = attributes
                 if existing:
                     mongo_collection().update_one({"_id": existing["_id"]}, {"$set": fields})
                     if image_url:

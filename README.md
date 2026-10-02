@@ -41,7 +41,16 @@ export NEO4J_HOST=127.0.0.1
 export NEO4J_HTTP_PORT=7474
 export NEO4J_USER=neo4j
 export NEO4J_PASS=password123
+export AI_GATEWAY_API_KEY=your_olagon_api_key
+export AI_GATEWAY_BASE_URL=https://gateway.olagon.site/anthropic
+export AI_GATEWAY_MODEL=claude-opus-4-7
 ```
+
+Pada form produk, unggah foto label kemasan lalu centang analisis AI. Aplikasi
+mengirim gambar ke Anthropic Messages API milik Olagon Gateway dan menyimpan
+komposisi, nutrisi, alergen, tingkat keyakinan, serta catatan hasil analisis ke
+atribut produk MongoDB. API key hanya dibaca dari environment variable dan
+tidak boleh ditulis ke source code atau di-commit.
 
 ## Import Data XLSX
 
