@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-5 col-lg-4"><div class="card border-0 shadow-sm"><div class="card-body p-4">
+<h1 class="h3 mb-3">Masuk ke akun</h1><p class="text-secondary">Lanjut belanja pintar sesuai profil kesehatan Anda.</p>
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+<form method="post" class="vstack gap-3"><label class="form-label">Email<input class="form-control" type="email" name="email" required autofocus></label><label class="form-label">Password<input class="form-control" type="password" name="password" required></label><button class="btn btn-primary w-100">Masuk</button></form>
+<p class="small text-center mt-4 mb-0">Belum punya akun? <a href="{{ url('/register.php') }}">Daftar</a></p>
+</div></div></div></div>
+{% endblock %}

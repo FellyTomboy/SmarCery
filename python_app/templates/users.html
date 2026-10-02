@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<h1 class="h2 mb-4">Pengguna</h1><div class="table-responsive"><table class="table table-hover bg-white"><thead><tr><th>ID</th><th>Nama</th><th>Email</th><th>Role</th></tr></thead><tbody>{% for account in users %}<tr><td>{{ account.id }}</td><td>{{ account.name }}</td><td>{{ account.email }}</td><td><span class="badge text-bg-{{ 'info' if account.role == 'admin' else 'light' }}">{{ account.role }}</span></td></tr>{% endfor %}</tbody></table></div>{% endblock %}

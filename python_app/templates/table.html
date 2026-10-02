@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<h1 class="h2 mb-4">{{ heading }}</h1><div class="table-responsive"><table class="table table-hover bg-white"><thead><tr>{% for column in columns %}<th>{{ column }}</th>{% endfor %}</tr></thead><tbody>{% for row in rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% else %}<tr><td colspan="{{ columns|length }}" class="text-secondary">Belum ada data.</td></tr>{% endfor %}</tbody></table></div>{% endblock %}
