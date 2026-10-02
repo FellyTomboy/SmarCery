@@ -43,6 +43,31 @@ export NEO4J_USER=neo4j
 export NEO4J_PASS=password123
 ```
 
+## Import Data XLSX
+
+Jalankan setelah skema MySQL, seed kategori/alergen, dan ketiga database aktif:
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 tools/import_xlsx_products.py
+```
+
+Importer membaca `makanan data.xlsx` dan `minuman data.xlsx` lalu:
+
+- menyimpan 43 produk dan komposisinya ke MongoDB `smarcery.products`;
+- memastikan kategori serta master alergen tersedia di MySQL;
+- membuat node produk, kategori, dan relasi alergen di Neo4j.
+
+Import aman dijalankan ulang karena produk memakai ID deterministik dan prosesnya
+menggunakan upsert. Untuk memeriksa XLSX tanpa koneksi database:
+
+```bash
+python3 tools/import_xlsx_products.py --dry-run
+```
+
+Untuk Neo4j, importer menggunakan `NEO4J_URI`, `NEO4J_USER`, dan
+`NEO4J_PASSWORD` (bukan `NEO4J_PASS`).
+
 Jalankan Flask:
 
 ```bash
