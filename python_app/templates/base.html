@@ -6,28 +6,12 @@
   <title>{{ title }} - SmarCery</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
-  <style>
-    :root { --smarcery-ink: #17201d; --smarcery-muted: #66736d; --smarcery-green: #205f4b; --smarcery-line: #e7ebe8; }
-    body { color: var(--smarcery-ink); }
-    .product-editor { border: 1px solid var(--smarcery-line) !important; border-radius: 16px; }
-    .product-editor .form-label { color: var(--smarcery-ink); font-size: .82rem; font-weight: 600; margin-bottom: .4rem; }
-    .product-editor .form-control, .product-editor .form-select { border-color: #dce3df; border-radius: 8px; min-height: 42px; }
-    .product-editor .form-control:focus, .product-editor .form-select:focus { border-color: #7aa994; box-shadow: 0 0 0 .2rem rgba(32,95,75,.12); }
-    .editor-section { border-top: 1px solid var(--smarcery-line); margin-top: 1.5rem; padding-top: 1.35rem; }
-    .editor-section-heading { align-items: center; display: flex; gap: .65rem; margin-bottom: 1rem; }
-    .editor-section-heading i { align-items: center; background: #e8f3ed; border-radius: 9px; color: var(--smarcery-green); display: inline-flex; height: 30px; justify-content: center; width: 30px; }
-    .editor-section-heading h2 { font-size: 1rem; font-weight: 700; margin: 0; }
-    .editor-section-heading p { color: var(--smarcery-muted); font-size: .78rem; margin: .15rem 0 0; }
-    .nutrition-grid { background: #f8faf9; border: 1px solid var(--smarcery-line); border-radius: 12px; padding: 1rem; }
-    .ai-result { background: #edf8f1; border: 1px solid #c8e7d2; border-radius: 12px; color: #245b3d; font-size: .84rem; line-height: 1.55; padding: 1rem 1.1rem; }
-    .ai-result-title { align-items: center; display: flex; font-size: .95rem; font-weight: 700; gap: .5rem; margin-bottom: .35rem; }
-    .product-editor .btn-primary { background: var(--smarcery-green); border-color: var(--smarcery-green); border-radius: 9px; font-weight: 600; padding: .7rem 1.25rem; }
-  </style>
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
 </head>
 <body class="bg-light">
 <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm">
   <div class="container-xl">
-    <a class="navbar-brand fw-bold" href="{{ url('/') }}"><i class="bi bi-cart3 text-primary"></i> SmarCery</a>
+    <a class="navbar-brand fw-bold" href="{{ url('/') }}"><span class="brand-mark"><i class="bi bi-stars"></i></span> SmarCery</a>
     {% if user %}
     <div class="d-flex align-items-center gap-3">
       {% if user.role == 'admin' %}<a class="nav-link" href="{{ url('/admin/dashboard.php') }}">Dashboard</a><a class="nav-link" href="{{ url('/admin/products.php') }}">Produk</a><a class="nav-link" href="{{ url('/admin/categories.php') }}">Kategori</a><a class="nav-link" href="{{ url('/admin/allergens.php') }}">Alergen</a>{% else %}<a class="nav-link" href="{{ url('/user/dashboard.php') }}">Beranda</a>{% endif %}
