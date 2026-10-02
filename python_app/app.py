@@ -27,6 +27,8 @@ from flask import (
 from pymongo import MongoClient
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
+from bson.binary import Binary
+from flask import Response
 
 BASE_PATH = "/SmarCery/public"
 ROOT = Path(__file__).resolve().parent
@@ -77,16 +79,15 @@ def save_product_image(upload):
     )
     if not valid_header:
         raise ValueError("File yang diunggah bukan gambar yang valid.")
-    upload.stream.seek(0, 2)
-    file_size = upload.stream.tell()
-    upload.stream.seek(0)
-    if file_size > MAX_IMAGE_SIZE:
+    data = upload.stream.read()
+    if len(data) > MAX_IMAGE_SIZE:
         raise ValueError("Setiap foto maksimal berukuran 5 MB.")
-    UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid.uuid4().hex}{extension}"
-    upload.save(UPLOAD_FOLDER / filename)
+    mime_type = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}[extension]
+    mongo_collection("product_images").insert_one(
+        {"_id": filename, "data": Binary(data), "mime_type": mime_type}
+    )
     return f"{BASE_PATH}/uploads/{filename}"
-
 
 def save_product_images(uploads):
     image_urls = []
@@ -108,27 +109,22 @@ def product_image_urls(product):
         image_urls.insert(0, legacy_url)
     return image_urls
 
-
 def delete_product_image(image_url):
     if not image_url or not image_url.startswith(f"{BASE_PATH}/uploads/"):
         return
     filename = Path(image_url).name
     if filename:
-        (UPLOAD_FOLDER / filename).unlink(missing_ok=True)
-
+        mongo_collection("product_images").delete_one({"_id": filename})
 
 def analyze_product_image(image_url, product_type):
     api_key = os.getenv("AI_GATEWAY_API_KEY")
     if not api_key:
         raise ValueError("AI_GATEWAY_API_KEY belum dikonfigurasi.")
-    image_path = UPLOAD_FOLDER / Path(image_url).name
-    image_data = base64.b64encode(image_path.read_bytes()).decode("ascii")
-    mime_type = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-    }[image_path.suffix.lower()]
+    doc = mongo_collection("product_images").find_one({"_id": Path(image_url).name})
+    if not doc:
+        raise ValueError("Foto tidak ditemukan untuk dianalisis.")
+    image_data = base64.b64encode(bytes(doc["data"])).decode("ascii")
+    mime_type = doc["mime_type"]
     endpoint = os.getenv(
         "AI_GATEWAY_BASE_URL", "https://gateway.olagon.site/anthropic"
     ).rstrip("/") + "/v1/messages"
@@ -219,11 +215,16 @@ def analyze_product_images(image_urls, product_type):
         "notes": " ".join(dict.fromkeys(notes)),
     }
 
-
 @app.get(f"{BASE_PATH}/uploads/<path:filename>")
 def product_upload(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
-
+    doc = mongo_collection("product_images").find_one({"_id": filename})
+    if not doc:
+        abort(404)
+    return Response(
+        bytes(doc["data"]),
+        mimetype=doc["mime_type"],
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 def category_map():
     conn = mysql_connection()
