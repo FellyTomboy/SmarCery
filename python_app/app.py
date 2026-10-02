@@ -754,16 +754,11 @@ def api_autocomplete():
 @app.get(f"{BASE_PATH}/api/product_search.php")
 @login_required
 def api_product_search():
-    product_id = request.args.get("product", "")
-    try:
-        source = mongo_collection().find_one({"_id": ObjectId(product_id)})
-    except Exception:
-        source = None
+    source = find_product_by_id(request.args.get("product", "").strip())
     if not source:
         return jsonify({"ok": False, "error": "Produk tidak ditemukan"}), 404
     alternatives = products_from_mongo({"category_id": source.get("category_id"), "_id": {"$ne": source["_id"]}}, limit=4)
     return jsonify({"ok": True, "alternatives": [{"id": p["_id"], "name": p["name"], "brand": p.get("brand", ""), "price": p.get("price", 0)} for p in alternatives]})
-
 
 @app.route(f"{BASE_PATH}/user/contribute.php", methods=["GET", "POST"])
 @login_required
