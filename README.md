@@ -46,6 +46,10 @@ export AI_GATEWAY_BASE_URL=https://gateway.olagon.site/anthropic
 export AI_GATEWAY_MODEL=claude-opus-4-7
 ```
 
+Konfigurasi tersebut juga bisa disimpan secara lokal. Salin `.env.example` menjadi
+`.env`, isi `AI_GATEWAY_API_KEY` dengan key asli, lalu jalankan aplikasi seperti
+biasa. File `.env` sudah masuk `.gitignore` dan tidak akan di-push.
+
 Pada form produk, unggah foto label kemasan lalu centang analisis AI. Aplikasi
 mengirim gambar ke Anthropic Messages API milik Olagon Gateway dan menyimpan
 komposisi, nutrisi, alergen, tingkat keyakinan, serta catatan hasil analisis ke

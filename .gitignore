@@ -2,3 +2,6 @@ vendor/
 __pycache__/
 *.py[cod]
 python_app/uploads/*
+.env
+.env.*
+!.env.example

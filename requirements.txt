@@ -3,4 +3,5 @@ bcrypt>=4.2
 mysql-connector-python>=9.0
 pymongo>=4.8
 neo4j>=5.26
+python-dotenv>=1.0
 requests>=2.32

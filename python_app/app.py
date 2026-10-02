@@ -10,6 +10,7 @@ import bcrypt
 import mysql.connector
 import requests
 from bson import ObjectId
+from dotenv import load_dotenv
 from flask import (
     Flask,
     flash,
@@ -27,6 +28,7 @@ from werkzeug.utils import secure_filename
 
 BASE_PATH = "/SmarCery/public"
 ROOT = Path(__file__).resolve().parent
+load_dotenv(ROOT.parent / ".env")
 UPLOAD_FOLDER = ROOT / "uploads"
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
