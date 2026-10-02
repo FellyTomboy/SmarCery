@@ -31,13 +31,13 @@
     <div class="col-12">
       <label class="form-label">Informasi nutrisi</label>
       <div class="row g-2 nutrition-grid">
-        <div class="col-md-4"><input class="form-control" name="nutrition_basis" placeholder="Dasar: per 100g / per 100ml / per sajian" value="{{ nutrition.get('basis', '') }}"></div>
-        <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_calories_kcal" placeholder="Kalori (kcal)" value="{{ nutrition.get('calories_kcal', '') }}"></div>
-        <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_protein_g" placeholder="Protein (g)" value="{{ nutrition.get('protein_g', '') }}"></div>
-        <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_fat_g" placeholder="Lemak (g)" value="{{ nutrition.get('fat_g', '') }}"></div>
-        <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_carbohydrates_g" placeholder="Karbohidrat (g)" value="{{ nutrition.get('carbohydrates_g', '') }}"></div>
-        <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_sugar_g" placeholder="Gula (g)" value="{{ nutrition.get('sugar_g', '') }}"></div>
-        <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_sodium_mg" placeholder="Natrium (mg)" value="{{ nutrition.get('sodium_mg', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="nutrition_basis">Basis pengukuran</label><input class="form-control" id="nutrition_basis" name="nutrition_basis" placeholder="Contoh: per 100g" value="{{ nutrition.get('basis', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="nutrition_calories_kcal">Kalori <span class="text-secondary fw-normal">(kcal)</span></label><input class="form-control" id="nutrition_calories_kcal" type="number" step="any" name="nutrition_calories_kcal" value="{{ nutrition.get('calories_kcal', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="nutrition_protein_g">Protein <span class="text-secondary fw-normal">(g)</span></label><input class="form-control" id="nutrition_protein_g" type="number" step="any" name="nutrition_protein_g" value="{{ nutrition.get('protein_g', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="nutrition_fat_g">Lemak total <span class="text-secondary fw-normal">(g)</span></label><input class="form-control" id="nutrition_fat_g" type="number" step="any" name="nutrition_fat_g" value="{{ nutrition.get('fat_g', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="nutrition_carbohydrates_g">Karbohidrat <span class="text-secondary fw-normal">(g)</span></label><input class="form-control" id="nutrition_carbohydrates_g" type="number" step="any" name="nutrition_carbohydrates_g" value="{{ nutrition.get('carbohydrates_g', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="nutrition_sugar_g">Gula <span class="text-secondary fw-normal">(g)</span></label><input class="form-control" id="nutrition_sugar_g" type="number" step="any" name="nutrition_sugar_g" value="{{ nutrition.get('sugar_g', '') }}"></div>
+        <div class="col-md-4"><label class="form-label" for="nutrition_sodium_mg">Natrium <span class="text-secondary fw-normal">(mg)</span></label><input class="form-control" id="nutrition_sodium_mg" type="number" step="any" name="nutrition_sodium_mg" value="{{ nutrition.get('sodium_mg', '') }}"></div>
       </div>
     </div>
   </div>
