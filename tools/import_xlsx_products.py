@@ -208,14 +208,14 @@ def import_neo4j(products: list[dict[str, Any]]) -> None:
     MERGE (p:Product {id: $id})
     SET p.name=$name, p.brand=$brand, p.category_id=$category_id,
         p.type=$type, p.allergens=$allergens, p.is_active=true
-    WITH p
+    WITH p, $names AS names
     MERGE (c:Category {id: $category_id})
     SET c.name=$category_name
     MERGE (p)-[:BELONGS_TO]->(c)
-    WITH p
+    WITH p, names
     OPTIONAL MATCH (p)-[old:CONTAINS_ALLERGIEN]->()
     DELETE old
-    WITH p
+    WITH p, names
     UNWIND $allergens AS allergen_slug
     MERGE (a:Allergen {slug: allergen_slug})
     SET a.name = allergen_name(allergen_slug)
