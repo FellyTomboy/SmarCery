@@ -3,6 +3,7 @@ import json
 import os
 import re
 import uuid
+from collections import Counter
 from functools import wraps
 from pathlib import Path
 
@@ -383,7 +384,24 @@ def admin_dashboard():
         categories = cur.fetchone()[0]
     finally:
         conn.close()
-    return render_template("dashboard.html", admin=True, stats={"products": mongo_collection().count_documents({"is_active": True}), "users": users, "categories": categories}, title="Admin Dashboard")
+    active_products = list(mongo_collection().find({"is_active": True}, {"category_id": 1, "attributes": 1, "allergens": 1, "price": 1, "stock": 1}))
+    category_names = category_map()
+    category_counts = Counter(category_names.get(product.get("category_id"), "Tanpa kategori") for product in active_products)
+    type_counts = Counter((product.get("attributes") or {}).get("type", "food") for product in active_products)
+    allergen_counts = Counter(allergen for product in active_products for allergen in product.get("allergens", []))
+    max_category = max(category_counts.values(), default=1)
+    max_allergen = max(allergen_counts.values(), default=1)
+    category_breakdown = [{"label": label, "count": count, "percent": round(count / max_category * 100)} for label, count in category_counts.most_common()]
+    allergen_breakdown = [{"label": label, "count": count, "percent": round(count / max_allergen * 100)} for label, count in allergen_counts.most_common(6)]
+    stats = {
+        "products": len(active_products),
+        "users": users,
+        "categories": categories,
+        "analyzed": sum(bool((product.get("attributes") or {}).get("ai_analysis")) for product in active_products),
+        "stock": sum(product.get("stock", 0) or 0 for product in active_products),
+        "average_price": round(sum(product.get("price", 0) or 0 for product in active_products) / len(active_products)) if active_products else 0,
+    }
+    return render_template("dashboard.html", admin=True, stats=stats, category_breakdown=category_breakdown, allergen_breakdown=allergen_breakdown, type_breakdown=[{"label": "Makanan", "count": type_counts.get("food", 0)}, {"label": "Minuman", "count": type_counts.get("drink", 0)}], title="Admin Dashboard")
 
 
 @app.get(f"{BASE_PATH}/user/dashboard.php")
