@@ -5,7 +5,8 @@
 {% set composition = attributes.get('composition', []) %}
 {% set nutrition = attributes.get('nutrition_per_100g') or attributes.get('nutrition_per_100ml') or {} %}
 <h1 class="h2 mb-4">{{ 'Edit' if editing else 'Tambah' }} Produk</h1>
-<form method="post" enctype="multipart/form-data" class="card border-0 shadow-sm p-4">
+<form method="post" enctype="multipart/form-data" class="card product-editor border-0 shadow-sm p-4 p-md-5">
+  <div class="editor-section-heading"><i class="bi bi-box-seam"></i><div><h2>Informasi produk</h2><p>Data utama yang tampil di katalog.</p></div></div>
   <div class="row g-3">
     <div class="col-md-8"><label class="form-label">Nama<input class="form-control" name="name" required value="{{ product.name if editing else '' }}"></label></div>
     <div class="col-md-4"><label class="form-label">Merek<input class="form-control" name="brand" value="{{ product.brand if editing else '' }}"></label></div>
@@ -14,20 +15,22 @@
     <div class="col-md-4"><label class="form-label">Stok<input class="form-control" type="number" name="stock" value="{{ product.stock if editing else 0 }}"></label></div>
     <div class="col-md-6"><label class="form-label">Alergen, pisahkan koma<input class="form-control" name="allergens" value="{{ product.allergens|join(',') if editing else '' }}"></label></div>
     <div class="col-md-6"><label class="form-label">Barcode<input class="form-control" name="barcode" value="{{ product.barcode if editing else '' }}"></label></div>
-    <div class="col-12">
+    <div class="col-12 editor-section">
+      <div class="editor-section-heading"><i class="bi bi-camera"></i><div><h2>Foto produk</h2><p>Gunakan foto label kemasan yang terang dan mudah dibaca.</p></div></div>
       <label class="form-label" for="image">Foto produk</label>
       <input class="form-control" id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp">
       <div class="form-text">JPG, PNG, atau WEBP. Maksimal 5 MB.</div>
       {% if editing and product.image_url %}<img class="img-thumbnail mt-2" src="{{ product.image_url }}" alt="Foto {{ product.name }}" style="max-width: 180px; max-height: 180px; object-fit: cover;">{% endif %}
     </div>
-    <div class="col-12">
+    <div class="col-12 editor-section">
+      <div class="editor-section-heading"><i class="bi bi-list-check"></i><div><h2>Komposisi dan nutrisi</h2><p>Isi manual atau koreksi hasil pembacaan AI.</p></div></div>
       <label class="form-label" for="composition">Komposisi / bahan</label>
       <textarea class="form-control" id="composition" name="composition" rows="5" placeholder="Satu bahan per baris">{% if composition is string %}{{ composition }}{% else %}{{ composition|join('\n') }}{% endif %}</textarea>
       <div class="form-text">Bisa diisi atau dikoreksi manual setelah analisis AI.</div>
     </div>
     <div class="col-12">
       <label class="form-label">Informasi nutrisi</label>
-      <div class="row g-2">
+      <div class="row g-2 nutrition-grid">
         <div class="col-md-4"><input class="form-control" name="nutrition_basis" placeholder="Dasar: per 100g / per 100ml / per sajian" value="{{ nutrition.get('basis', '') }}"></div>
         <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_calories_kcal" placeholder="Kalori (kcal)" value="{{ nutrition.get('calories_kcal', '') }}"></div>
         <div class="col-md-4"><input class="form-control" type="number" step="any" name="nutrition_protein_g" placeholder="Protein (g)" value="{{ nutrition.get('protein_g', '') }}"></div>
@@ -38,9 +41,12 @@
       </div>
     </div>
   </div>
-  <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="analyze_image" value="1"><label class="form-check-label">Analisis komposisi dan nutrisi dengan AI (Claude Opus 4.7)</label></div>
+  <div class="editor-section">
+  <div class="editor-section-heading"><i class="bi bi-stars"></i><div><h2>Analisis AI</h2><p>Ekstrak informasi label dari foto menggunakan Claude Opus 4.7.</p></div></div>
+  <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="analyze_image" value="1"><label class="form-check-label">Jalankan analisis AI saat menyimpan</label></div>
   <div class="form-text mb-2">Unggah foto baru dan centang opsi ini untuk memperbarui hasil AI.</div>
-  {% if editing and attributes.get('ai_analysis') %}<div class="alert alert-success mt-2"><strong>Hasil analisis AI tersimpan</strong><br>Model: {{ attributes.ai_analysis.get('model', '-') }} · Confidence: {{ attributes.ai_analysis.get('confidence', '-') }}{% if attributes.ai_analysis.get('notes') %}<br>{{ attributes.ai_analysis.get('notes') }}{% endif %}<label class="form-check mt-2"><input class="form-check-input" type="checkbox" name="clear_ai_analysis" value="1"> Hapus metadata analisis AI</label></div>{% endif %}
+  {% if editing and attributes.get('ai_analysis') %}<div class="ai-result mt-3"><div class="ai-result-title"><i class="bi bi-check-circle-fill"></i> Hasil analisis tersimpan</div><div>Model: {{ attributes.ai_analysis.get('model', '-') }} · Confidence: {{ attributes.ai_analysis.get('confidence', '-') }}</div>{% if attributes.ai_analysis.get('notes') %}<div class="mt-1">{{ attributes.ai_analysis.get('notes') }}</div>{% endif %}<label class="form-check mt-3"><input class="form-check-input" type="checkbox" name="clear_ai_analysis" value="1"> Hapus metadata analisis AI</label></div>{% endif %}
+  </div>
   <div class="form-check"><input class="form-check-input" type="checkbox" name="vegan" value="1" {% if editing and attributes.vegan %}checked{% endif %}><label class="form-check-label">Vegan</label></div>
   <div class="form-check"><input class="form-check-input" type="checkbox" name="halal" value="1" {% if editing and attributes.halal_certified %}checked{% endif %}><label class="form-check-label">Halal</label></div>
   <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="is_active" value="1" checked><label class="form-check-label">Aktif</label></div>
