@@ -1,4 +1,5 @@
 import os
+import uuid
 from functools import wraps
 from pathlib import Path
 
@@ -6,16 +7,31 @@ import bcrypt
 import mysql.connector
 import requests
 from bson import ObjectId
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 from pymongo import MongoClient
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 BASE_PATH = "/SmarCery/public"
 ROOT = Path(__file__).resolve().parent
+UPLOAD_FOLDER = ROOT / "uploads"
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 app = Flask(__name__, template_folder=str(ROOT / "templates"))
 app.secret_key = os.getenv("FLASK_SECRET", "smarcery-development-secret")
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+app.config["MAX_CONTENT_LENGTH"] = MAX_IMAGE_SIZE
 
 
 def mysql_connection():
@@ -30,6 +46,40 @@ def mysql_connection():
 def mongo_collection(name="products"):
     client = MongoClient(os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017"))
     return client.smarcery[name]
+
+
+def save_product_image(upload):
+    if not upload or not upload.filename:
+        return None
+    extension = Path(secure_filename(upload.filename)).suffix.lower()
+    if extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise ValueError("Foto harus berformat JPG, PNG, atau WEBP.")
+    header = upload.stream.read(12)
+    upload.stream.seek(0)
+    valid_header = (
+        header.startswith(b"\xff\xd8\xff")
+        or header.startswith(b"\x89PNG\r\n\x1a\n")
+        or (header.startswith(b"RIFF") and header[8:12] == b"WEBP")
+    )
+    if not valid_header:
+        raise ValueError("File yang diunggah bukan gambar yang valid.")
+    UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{extension}"
+    upload.save(UPLOAD_FOLDER / filename)
+    return f"{BASE_PATH}/uploads/{filename}"
+
+
+def delete_product_image(image_url):
+    if not image_url or not image_url.startswith(f"{BASE_PATH}/uploads/"):
+        return
+    filename = Path(image_url).name
+    if filename:
+        (UPLOAD_FOLDER / filename).unlink(missing_ok=True)
+
+
+@app.get(f"{BASE_PATH}/uploads/<path:filename>")
+def product_upload(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 
 def category_map():
@@ -226,14 +276,23 @@ def admin_product_form():
         }
         if not fields["name"]:
             flash("Nama produk wajib diisi.", "danger")
-        elif existing:
-            mongo_collection().update_one({"_id": existing["_id"]}, {"$set": fields})
-            flash("Produk diperbarui.", "success")
-            return redirect(url("/admin/products.php"))
         else:
-            mongo_collection().insert_one(fields)
-            flash("Produk ditambahkan.", "success")
-            return redirect(url("/admin/products.php"))
+            upload = request.files.get("image")
+            try:
+                image_url = save_product_image(upload)
+            except ValueError as error:
+                flash(str(error), "danger")
+            else:
+                fields["image_url"] = image_url or (existing or {}).get("image_url")
+                if existing:
+                    mongo_collection().update_one({"_id": existing["_id"]}, {"$set": fields})
+                    if image_url:
+                        delete_product_image(existing.get("image_url"))
+                    flash("Produk diperbarui.", "success")
+                else:
+                    mongo_collection().insert_one(fields)
+                    flash("Produk ditambahkan.", "success")
+                return redirect(url("/admin/products.php"))
     conn = mysql_connection()
     try:
         cur = conn.cursor(dictionary=True)
