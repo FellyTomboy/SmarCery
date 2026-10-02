@@ -256,7 +256,7 @@ def index():
 
 @app.route(f"{BASE_PATH}/login.php", methods=["GET", "POST"])
 def login():
-    if current_user() and request.method == "GET":
+    if current_user():
         destination = "/admin/dashboard.php" if current_user()["role"] == "admin" else "/user/dashboard.php"
         return redirect(url(destination))
     error = None
