@@ -230,7 +230,7 @@ def url(path):
 @app.get("/")
 @app.get("/SmarCery")
 def project_root():
-    return redirect(f"{BASE_PATH}/")
+    return render_template("landing.html", title="SmarCery")
 
 
 @app.get(f"{BASE_PATH}/")

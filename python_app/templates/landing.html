@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} - SmarCery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink: #17201d; --muted: #66736d; --cream: #f6f5ef; --mint: #d8f06b; --green: #205f4b; --line: rgba(23,32,29,.14); }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--cream); font-family: "DM Sans", sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    .shell { min-height: 100vh; overflow: hidden; }
+    .nav { align-items: center; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1240px; padding: 25px 36px; }
+    .brand { align-items: center; display: inline-flex; font-family: "Space Grotesk", sans-serif; font-size: 22px; font-weight: 700; gap: 10px; letter-spacing: 0; }
+    .brand-mark { align-items: center; background: var(--green); border-radius: 12px 12px 12px 3px; color: var(--mint); display: inline-flex; font-size: 18px; height: 36px; justify-content: center; transform: rotate(-7deg); width: 36px; }
+    .nav-links { align-items: center; display: flex; gap: 28px; }
+    .nav-links a { color: var(--muted); font-size: 14px; font-weight: 600; }
+    .nav-links a:hover { color: var(--green); }
+    .nav-actions { align-items: center; display: flex; gap: 12px; }
+    .button { border: 1px solid var(--green); border-radius: 999px; display: inline-flex; font-size: 14px; font-weight: 700; justify-content: center; padding: 12px 20px; transition: transform .2s ease, box-shadow .2s ease; }
+    .button:hover { box-shadow: 0 8px 20px rgba(32,95,75,.16); transform: translateY(-2px); }
+    .button-ghost { color: var(--green); }
+    .button-solid { background: var(--green); color: white; }
+    .hero { align-items: center; display: grid; gap: 64px; grid-template-columns: minmax(0, .95fr) minmax(420px, 1.05fr); margin: 0 auto; max-width: 1240px; min-height: calc(100vh - 88px); padding: 56px 36px 92px; }
+    .eyebrow { align-items: center; color: var(--green); display: flex; font-size: 12px; font-weight: 700; gap: 9px; letter-spacing: 1.8px; text-transform: uppercase; }
+    .eyebrow::before { background: var(--green); border-radius: 50%; content: ""; height: 8px; width: 8px; }
+    h1 { font-family: "Space Grotesk", sans-serif; font-size: clamp(3.3rem, 6vw, 6.3rem); letter-spacing: -3px; line-height: .94; margin: 22px 0 28px; max-width: 660px; }
+    h1 em { color: var(--green); font-style: normal; }
+    .lede { color: var(--muted); font-size: 18px; line-height: 1.65; margin: 0 0 34px; max-width: 520px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .trust { align-items: center; color: var(--muted); display: flex; font-size: 13px; gap: 13px; margin-top: 35px; }
+    .trust-dots { display: flex; }
+    .trust-dots span { background: #d9b26f; border: 2px solid var(--cream); border-radius: 50%; height: 27px; margin-left: -7px; width: 27px; }
+    .trust-dots span:first-child { background: #7cae8c; margin-left: 0; }
+    .trust-dots span:nth-child(2) { background: #e9a37c; }
+    .trust-dots span:nth-child(3) { background: #9a8bc1; }
+    .visual { min-height: 510px; position: relative; }
+    .photo { background: linear-gradient(180deg, rgba(24,52,41,.02), rgba(24,52,41,.22)), url("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=85") center/cover; border-radius: 42% 42% 9% 9%; height: 510px; margin-left: auto; max-width: 470px; overflow: hidden; position: relative; transform: rotate(3deg); width: 88%; }
+    .photo::after { border: 1px solid rgba(255,255,255,.45); border-radius: inherit; content: ""; inset: 15px; position: absolute; }
+    .scan-card { background: rgba(255,255,255,.92); border: 1px solid rgba(255,255,255,.8); border-radius: 18px; bottom: 38px; box-shadow: 0 18px 50px rgba(23,32,29,.18); left: 0; padding: 17px 19px; position: absolute; transform: rotate(-4deg); width: 245px; }
+    .scan-label { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+    .scan-name { font-family: "Space Grotesk", sans-serif; font-size: 21px; font-weight: 600; margin: 7px 0 13px; }
+    .scan-row { align-items: center; display: flex; font-size: 12px; justify-content: space-between; padding: 8px 0; }
+    .scan-row + .scan-row { border-top: 1px solid var(--line); }
+    .scan-row strong { color: var(--green); }
+    .pill { background: var(--mint); border-radius: 999px; color: var(--ink); display: inline-block; font-size: 11px; font-weight: 700; margin-top: 13px; padding: 6px 10px; }
+    .floating-note { background: var(--mint); border-radius: 18px; color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.25; padding: 14px 16px; position: absolute; right: -2px; top: 55px; transform: rotate(7deg); width: 148px; }
+    .floating-note span { display: block; font-size: 24px; margin-bottom: 3px; }
+    .bottom-line { border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; letter-spacing: .8px; margin: 0 auto; max-width: 1168px; padding: 20px 0 30px; text-transform: uppercase; }
+    @media (max-width: 800px) { .nav { padding: 20px; } .nav-links { display: none; } .hero { display: block; min-height: auto; padding: 48px 20px 70px; } h1 { font-size: clamp(3rem, 15vw, 5rem); margin-top: 18px; } .lede { font-size: 16px; } .visual { margin-top: 52px; min-height: 420px; } .photo { height: 420px; margin: 0 auto; width: 86%; } .floating-note { right: -4px; top: 28px; } .scan-card { bottom: 18px; left: -4px; } .bottom-line { margin: 0 20px; } }
+    @media (max-width: 430px) { .nav-actions .button-ghost { display: none; } .nav-actions .button { padding: 10px 15px; } .visual { min-height: 370px; } .photo { height: 370px; } .scan-card { width: 220px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="nav">
+      <a class="brand" href="/"><span class="brand-mark">✦</span>SmarCery</a>
+      <nav class="nav-links" aria-label="Navigasi utama"><a href="#cara-kerja">Cara kerja</a><a href="#keunggulan">Keunggulan</a></nav>
+      <div class="nav-actions"><a class="button button-ghost" href="{{ url('/login.php') }}">Login</a><a class="button button-solid" href="{{ url('/register.php') }}">Register</a></div>
+    </header>
+    <main class="hero">
+      <section>
+        <div class="eyebrow">Belanja lebih sadar</div>
+        <h1>Kenali isi.<br><em>Pilih cerdas.</em></h1>
+        <p class="lede">SmarCery membantu kamu memahami komposisi, nutrisi, dan alergen dari produk supermarket sebelum masuk ke keranjang.</p>
+        <div class="hero-actions"><a class="button button-solid" href="{{ url('/register.php') }}">Mulai gratis <span aria-hidden="true">&nbsp;→</span></a><a class="button button-ghost" href="{{ url('/login.php') }}">Saya sudah punya akun</a></div>
+        <div class="trust"><div class="trust-dots"><span></span><span></span><span></span></div><span>Teman belanja untuk pilihan sehari-hari</span></div>
+      </section>
+      <section class="visual" aria-label="Pratinjau analisis produk">
+        <div class="photo"></div>
+        <div class="floating-note"><span>98%</span>lebih yakin membaca label</div>
+        <div class="scan-card"><div class="scan-label">Hasil analisis</div><div class="scan-name">Granola oat</div><div class="scan-row"><span>Protein</span><strong>8.2 g</strong></div><div class="scan-row"><span>Gula</span><strong>12.4 g</strong></div><div class="scan-row"><span>Info alergi</span><strong>Terdeteksi</strong></div><div class="pill">Label dipahami</div></div>
+      </section>
+    </main>
+    <div class="bottom-line" id="cara-kerja">Scan label &nbsp;·&nbsp; Pahami bahan &nbsp;·&nbsp; Pilih dengan tenang</div>
+  </div>
+</body>
+</html>
