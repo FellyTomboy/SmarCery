@@ -227,6 +227,12 @@ def url(path):
     return f"{BASE_PATH}{path}"
 
 
+@app.get("/")
+@app.get("/SmarCery")
+def project_root():
+    return redirect(f"{BASE_PATH}/")
+
+
 @app.get(f"{BASE_PATH}/")
 def index():
     user = current_user()
