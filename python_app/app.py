@@ -11,31 +11,35 @@ import bcrypt
 import mysql.connector
 import requests
 from bson import ObjectId
+from bson.binary import Binary
 from dotenv import load_dotenv
 from flask import (
     Flask,
+    Response,
     abort,
     flash,
     jsonify,
     redirect,
     render_template,
     request,
-    send_from_directory,
     session,
-    url_for,
 )
 from pymongo import MongoClient
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
-from bson.binary import Binary
-from flask import Response
 
 BASE_PATH = "/SmarCery/public"
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT.parent / ".env")
-UPLOAD_FOLDER = ROOT / "uploads"
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+IMAGE_MIME_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
+DRINK_CATEGORY_ID = 5
 
 app = Flask(__name__, template_folder=str(ROOT / "templates"))
 app.secret_key = os.getenv("FLASK_SECRET", "smarcery-development-secret")
@@ -43,26 +47,64 @@ app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 app.config["MAX_CONTENT_LENGTH"] = MAX_IMAGE_SIZE * 5
 
 
+# ---------------------------------------------------------------------------
+# Database helpers
+# ---------------------------------------------------------------------------
+
 def mysql_connection():
     return mysql.connector.connect(
         host=os.getenv("DB_HOST", "127.0.0.1"),
+        port=int(os.getenv("DB_PORT", "3306")),
         database=os.getenv("DB_NAME", "smarcery"),
         user=os.getenv("DB_USER", "root"),
         password=os.getenv("DB_PASS", "root"),
     )
 
 
-def mongo_collection(name="products"):
-    client = MongoClient(os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017"))
-    return client.smarcery[name]
+_mongo_client = None
 
-def find_product_by_id(product_id):
+
+def mongo_collection(name="products"):
+    global _mongo_client
+    if _mongo_client is None:
+        _mongo_client = MongoClient(os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017"))
+    return _mongo_client[os.getenv("MONGO_DB", "smarcery")][name]
+
+
+def id_candidates(product_id):
+    """Kembalikan ID dalam bentuk ObjectId dan string, karena data seed memakai _id string."""
+    product_id = (product_id or "").strip()
     candidates = [product_id]
     try:
         candidates.insert(0, ObjectId(product_id))
     except Exception:
         pass
-    return mongo_collection().find_one({"_id": {"$in": candidates}})
+    return candidates
+
+
+def find_product_by_id(product_id):
+    if not (product_id or "").strip():
+        return None
+    return mongo_collection().find_one({"_id": {"$in": id_candidates(product_id)}})
+
+
+def to_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def to_float(value, default=0.0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+# ---------------------------------------------------------------------------
+# Foto produk (disimpan di MongoDB karena filesystem Vercel read-only)
+# ---------------------------------------------------------------------------
 
 def save_product_image(upload):
     if not upload or not upload.filename:
@@ -83,11 +125,19 @@ def save_product_image(upload):
     if len(data) > MAX_IMAGE_SIZE:
         raise ValueError("Setiap foto maksimal berukuran 5 MB.")
     filename = f"{uuid.uuid4().hex}{extension}"
-    mime_type = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}[extension]
     mongo_collection("product_images").insert_one(
-        {"_id": filename, "data": Binary(data), "mime_type": mime_type}
+        {"_id": filename, "data": Binary(data), "mime_type": IMAGE_MIME_TYPES[extension]}
     )
     return f"{BASE_PATH}/uploads/{filename}"
+
+
+def delete_product_image(image_url):
+    if not image_url or not image_url.startswith(f"{BASE_PATH}/uploads/"):
+        return
+    filename = Path(image_url).name
+    if filename:
+        mongo_collection("product_images").delete_one({"_id": filename})
+
 
 def save_product_images(uploads):
     image_urls = []
@@ -107,14 +157,25 @@ def product_image_urls(product):
     legacy_url = product.get("image_url")
     if legacy_url and legacy_url not in image_urls:
         image_urls.insert(0, legacy_url)
-    return image_urls
+    # Hanya URL yang benar-benar ada di koleksi product_images (abaikan path seed lama).
+    return [u for u in image_urls if u and u.startswith(f"{BASE_PATH}/uploads/")]
 
-def delete_product_image(image_url):
-    if not image_url or not image_url.startswith(f"{BASE_PATH}/uploads/"):
-        return
-    filename = Path(image_url).name
-    if filename:
-        mongo_collection("product_images").delete_one({"_id": filename})
+
+@app.get(f"{BASE_PATH}/uploads/<path:filename>")
+def product_upload(filename):
+    doc = mongo_collection("product_images").find_one({"_id": filename})
+    if not doc:
+        abort(404)
+    return Response(
+        bytes(doc["data"]),
+        mimetype=doc["mime_type"],
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Analisis AI
+# ---------------------------------------------------------------------------
 
 def analyze_product_image(image_url, product_type):
     api_key = os.getenv("AI_GATEWAY_API_KEY")
@@ -215,16 +276,10 @@ def analyze_product_images(image_urls, product_type):
         "notes": " ".join(dict.fromkeys(notes)),
     }
 
-@app.get(f"{BASE_PATH}/uploads/<path:filename>")
-def product_upload(filename):
-    doc = mongo_collection("product_images").find_one({"_id": filename})
-    if not doc:
-        abort(404)
-    return Response(
-        bytes(doc["data"]),
-        mimetype=doc["mime_type"],
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
-    )
+
+# ---------------------------------------------------------------------------
+# Data helpers
+# ---------------------------------------------------------------------------
 
 def category_map():
     conn = mysql_connection()
@@ -244,6 +299,27 @@ def products_from_mongo(query=None, limit=100):
         product["category_name"] = categories.get(product.get("category_id"), "-")
         product["image_urls"] = product_image_urls(product)
     return docs
+
+
+def search_query(query_text):
+    if not query_text:
+        return None
+    pattern = re.escape(query_text)
+    return {
+        "$or": [
+            {"name": {"$regex": pattern, "$options": "i"}},
+            {"brand": {"$regex": pattern, "$options": "i"}},
+            {"attributes.composition": {"$regex": pattern, "$options": "i"}},
+        ]
+    }
+
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+def url(path):
+    return f"{BASE_PATH}{path}"
 
 
 def current_user():
@@ -301,9 +377,9 @@ def forbidden(error):
     return render_template("error.html", code=403, title="Akses ditolak", message="Akun Anda tidak memiliki izin untuk membuka halaman ini."), 403
 
 
-def url(path):
-    return f"{BASE_PATH}{path}"
-
+# ---------------------------------------------------------------------------
+# Halaman umum
+# ---------------------------------------------------------------------------
 
 @app.get("/")
 @app.get("/SmarCery")
@@ -380,6 +456,10 @@ def register():
     return render_template("register.html", error=error, title="Daftar")
 
 
+# ---------------------------------------------------------------------------
+# Admin
+# ---------------------------------------------------------------------------
+
 @app.get(f"{BASE_PATH}/admin/dashboard.php")
 @admin_required
 def admin_dashboard():
@@ -409,31 +489,28 @@ def admin_dashboard():
         "stock": sum(product.get("stock", 0) or 0 for product in active_products),
         "average_price": round(sum(product.get("price", 0) or 0 for product in active_products) / len(active_products)) if active_products else 0,
     }
-    return render_template("dashboard.html", admin=True, stats=stats, category_breakdown=category_breakdown, allergen_breakdown=allergen_breakdown, type_breakdown=[{"label": "Makanan", "count": type_counts.get("food", 0)}, {"label": "Minuman", "count": type_counts.get("drink", 0)}], title="Admin Dashboard")
-
-
-@app.get(f"{BASE_PATH}/user/dashboard.php")
-@login_required
-def user_dashboard():
-    query_text = request.args.get("q", "").strip()
-    query = None
-    if query_text:
-        query = {
-            "$or": [
-                {"name": {"$regex": query_text, "$options": "i"}},
-                {"brand": {"$regex": query_text, "$options": "i"}},
-                {"attributes.composition": {"$regex": query_text, "$options": "i"}},
-            ]
-        }
-    return render_template("dashboard.html", admin=False, products=products_from_mongo(query=query, limit=12), query=query_text, title="Beranda")
+    return render_template(
+        "dashboard.html",
+        admin=True,
+        stats=stats,
+        category_breakdown=category_breakdown,
+        allergen_breakdown=allergen_breakdown,
+        type_breakdown=[
+            {"label": "Makanan", "count": type_counts.get("food", 0)},
+            {"label": "Minuman", "count": type_counts.get("drink", 0)},
+        ],
+        title="Admin Dashboard",
+    )
 
 
 @app.route(f"{BASE_PATH}/admin/products.php", methods=["GET", "POST"])
 @admin_required
 def admin_products():
     if request.method == "POST" and request.form.get("action") == "delete":
-        product = find_product_by_id(request.form.get("product_id", "").strip())
+        product = find_product_by_id(request.form.get("product_id", ""))
         if product:
+            for image_url in product_image_urls(product):
+                delete_product_image(image_url)
             mongo_collection().delete_one({"_id": product["_id"]})
             flash("Produk dihapus.", "success")
         else:
@@ -453,13 +530,16 @@ def admin_product_form():
             flash("Produk tidak ditemukan.", "danger")
             return redirect(url("/admin/products.php"))
         existing["image_urls"] = product_image_urls(existing)
+
     if request.method == "POST":
+        category_id = to_int(request.form.get("category_id"))
         attributes = dict((existing or {}).get("attributes") or {})
         attributes.update({
-            "type": "food",
+            "type": "drink" if category_id == DRINK_CATEGORY_ID else "food",
             "vegan": request.form.get("vegan") == "1",
             "halal_certified": request.form.get("halal") == "1",
         })
+
         composition = [
             item.strip()
             for item in request.form.get("composition", "").splitlines()
@@ -469,7 +549,9 @@ def admin_product_form():
             attributes["composition"] = composition
         else:
             attributes.pop("composition", None)
+
         nutrition_values = {}
+        nutrition_errors = []
         nutrition_basis = request.form.get("nutrition_basis", "").strip()
         for key in ("calories_kcal", "protein_g", "fat_g", "carbohydrates_g", "sugar_g", "sodium_mg"):
             value = request.form.get(f"nutrition_{key}", "").strip()
@@ -477,30 +559,34 @@ def admin_product_form():
                 try:
                     nutrition_values[key] = float(value)
                 except ValueError:
-                    flash(f"Nilai nutrisi {key} harus berupa angka.", "danger")
-        old_nutrition_keys = ("nutrition_per_100g", "nutrition_per_100ml")
-        for key in old_nutrition_keys:
+                    nutrition_errors.append(key)
+        for key in ("nutrition_per_100g", "nutrition_per_100ml"):
             attributes.pop(key, None)
         if nutrition_values or nutrition_basis:
             nutrition_values["basis"] = nutrition_basis or "unknown"
             nutrition_key = "nutrition_per_100ml" if "100ml" in nutrition_basis.casefold() else "nutrition_per_100g"
             attributes[nutrition_key] = nutrition_values
+
         if request.form.get("clear_ai_analysis") == "1":
             attributes.pop("ai_analysis", None)
+
         fields = {
             "name": request.form.get("name", "").strip(),
             "brand": request.form.get("brand", "").strip(),
             "barcode": request.form.get("barcode", "").strip(),
-            "category_id": int(request.form.get("category_id", 0)),
-            "price": float(request.form.get("price", 0) or 0),
-            "stock": int(request.form.get("stock", 0) or 0),
+            "category_id": category_id,
+            "price": to_float(request.form.get("price")),
+            "stock": to_int(request.form.get("stock")),
             "is_active": request.form.get("is_active") == "1",
-            "popularity": int(request.form.get("popularity", 0) or 0),
-            "allergens": [a for a in request.form.get("allergens", "").split(",") if a.strip()],
+            "popularity": (existing or {}).get("popularity", 0),
+            "allergens": [a.strip() for a in request.form.get("allergens", "").split(",") if a.strip()],
             "attributes": attributes,
         }
+
         if not fields["name"]:
             flash("Nama produk wajib diisi.", "danger")
+        elif nutrition_errors:
+            flash(f"Nilai nutrisi harus berupa angka: {', '.join(nutrition_errors)}.", "danger")
         else:
             uploads = request.files.getlist("images") + request.files.getlist("camera_image")
             try:
@@ -512,20 +598,21 @@ def admin_product_form():
                 image_urls = existing_image_urls + new_image_urls
                 fields["image_urls"] = image_urls
                 fields["image_url"] = image_urls[0] if image_urls else None
+
                 if request.form.get("analyze_image") == "1":
                     analysis_urls = new_image_urls or existing_image_urls
                     if not analysis_urls:
                         flash("Pilih minimal satu foto untuk dianalisis AI.", "warning")
                     else:
                         try:
-                            product_type = "minuman" if fields["category_id"] == 5 else "makanan"
+                            product_type = "minuman" if category_id == DRINK_CATEGORY_ID else "makanan"
                             analysis = analyze_product_images(analysis_urls, product_type)
                             attributes["composition"] = analysis["composition"]
                             nutrition = analysis["nutrition"]
                             basis = str(nutrition.get("basis", "")).casefold()
-                            nutrition_key = (
-                                "nutrition_per_100ml" if "100ml" in basis else "nutrition_per_100g"
-                            )
+                            nutrition_key = "nutrition_per_100ml" if "100ml" in basis else "nutrition_per_100g"
+                            for old_key in ("nutrition_per_100g", "nutrition_per_100ml"):
+                                attributes.pop(old_key, None)
                             attributes[nutrition_key] = nutrition
                             attributes["ai_analysis"] = {
                                 "model": os.getenv("AI_GATEWAY_MODEL", "claude-opus-4-7"),
@@ -538,6 +625,7 @@ def admin_product_form():
                         except (OSError, ValueError, requests.RequestException, json.JSONDecodeError) as error:
                             flash(f"Foto tersimpan, tetapi analisis AI gagal: {error}", "warning")
                     fields["attributes"] = attributes
+
                 if existing:
                     mongo_collection().update_one({"_id": existing["_id"]}, {"$set": fields})
                     flash("Produk diperbarui.", "success")
@@ -545,6 +633,7 @@ def admin_product_form():
                     mongo_collection().insert_one(fields)
                     flash("Produk ditambahkan.", "success")
                 return redirect(url("/admin/products.php"))
+
     conn = mysql_connection()
     try:
         cur = conn.cursor(dictionary=True)
@@ -553,34 +642,6 @@ def admin_product_form():
     finally:
         conn.close()
     return render_template("product_form.html", product=existing, categories=categories, title="Form Produk")
-
-
-@app.get(f"{BASE_PATH}/user/browse.php")
-@login_required
-def browse():
-    query_text = request.args.get("q", "").strip()
-    query = None
-    if query_text:
-        query = {
-            "$or": [
-                {"name": {"$regex": query_text, "$options": "i"}},
-                {"brand": {"$regex": query_text, "$options": "i"}},
-                {"attributes.composition": {"$regex": query_text, "$options": "i"}},
-            ]
-        }
-    return render_template("products.html", products=products_from_mongo(query=query), query=query_text, title="Katalog")
-
-
-@app.get(f"{BASE_PATH}/user/product.php")
-@login_required
-def product_detail():
-    product = find_product_by_id(request.args.get("id", "").strip())
-    if not product:
-        return redirect(url("/user/browse.php"))
-    product["_id"] = str(product["_id"])
-    product["category_name"] = category_map().get(product.get("category_id"), "-")
-    product["image_urls"] = product_image_urls(product)
-    return render_template("product.html", product=product, title=product.get("name", "Produk"))
 
 
 @app.get(f"{BASE_PATH}/admin/users.php")
@@ -654,6 +715,47 @@ def admin_reviews():
     return render_template("table.html", heading="Moderasi Kontribusi", columns=["ID", "Tipe", "User", "Nilai"], rows=rows, title="Review")
 
 
+# ---------------------------------------------------------------------------
+# User
+# ---------------------------------------------------------------------------
+
+@app.get(f"{BASE_PATH}/user/dashboard.php")
+@login_required
+def user_dashboard():
+    query_text = request.args.get("q", "").strip()
+    return render_template(
+        "dashboard.html",
+        admin=False,
+        products=products_from_mongo(query=search_query(query_text), limit=12),
+        query=query_text,
+        title="Beranda",
+    )
+
+
+@app.get(f"{BASE_PATH}/user/browse.php")
+@login_required
+def browse():
+    query_text = request.args.get("q", "").strip()
+    return render_template(
+        "products.html",
+        products=products_from_mongo(query=search_query(query_text)),
+        query=query_text,
+        title="Katalog",
+    )
+
+
+@app.get(f"{BASE_PATH}/user/product.php")
+@login_required
+def product_detail():
+    product = find_product_by_id(request.args.get("id", ""))
+    if not product:
+        return redirect(url("/user/browse.php"))
+    product["_id"] = str(product["_id"])
+    product["category_name"] = category_map().get(product.get("category_id"), "-")
+    product["image_urls"] = product_image_urls(product)
+    return render_template("product.html", product=product, title=product.get("name", "Produk"))
+
+
 @app.get(f"{BASE_PATH}/user/bookmarks.php")
 @login_required
 def bookmarks():
@@ -664,13 +766,10 @@ def bookmarks():
         ids = [row[0] for row in cur.fetchall()]
     finally:
         conn.close()
-    object_ids = []
+    candidates = []
     for product_id in ids:
-        try:
-            object_ids.append(ObjectId(product_id))
-        except Exception:
-            pass
-    products = products_from_mongo({"_id": {"$in": object_ids}}) if object_ids else []
+        candidates.extend(id_candidates(product_id))
+    products = products_from_mongo({"_id": {"$in": candidates}}) if candidates else []
     return render_template("products.html", products=products, title="Favorit Saya")
 
 
@@ -698,7 +797,7 @@ def profile():
         cur = conn.cursor(dictionary=True)
         if request.method == "POST":
             diets = [d for d in request.form.getlist("diet") if d in {"vegan", "vegetarian", "halal", "keto"}]
-            cur.execute("UPDATE user_profiles SET diet_tags=%s, other_notes=%s WHERE user_id=%s", (str(diets).replace("'", '"'), request.form.get("other_notes", "")[:500], current_user()["id"]))
+            cur.execute("UPDATE user_profiles SET diet_tags=%s, other_notes=%s WHERE user_id=%s", (json.dumps(diets), request.form.get("other_notes", "")[:500], current_user()["id"]))
             conn.commit()
             flash("Profil kesehatan tersimpan.", "success")
             return redirect(url("/user/profile.php"))
@@ -711,14 +810,47 @@ def profile():
     return render_template("profile.html", allergens=allergens, profile=profile_data, title="Profil Kesehatan")
 
 
+@app.route(f"{BASE_PATH}/user/contribute.php", methods=["GET", "POST"])
+@login_required
+def contribute():
+    product_id = request.args.get("product") or request.form.get("product_id", "")
+    if request.method == "POST":
+        product = find_product_by_id(product_id)
+        if not product:
+            flash("Produk tidak valid.", "danger")
+            return redirect(url("/user/browse.php"))
+        contribution_type = request.form.get("type", "allergen_claim")
+        payload = {"new_value": request.form.get("new_value", "")[:500], "note": request.form.get("note", "")[:1000]}
+        result = mongo_collection("contributions").insert_one({
+            "product_id": str(product["_id"]),
+            "user_id": current_user()["id"],
+            "type": contribution_type,
+            "payload": payload,
+            "attachments": [],
+        })
+        conn = mysql_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("INSERT INTO contribution_status (contribution_id) VALUES (%s)", (str(result.inserted_id),))
+            conn.commit()
+        finally:
+            conn.close()
+        flash("Kontribusi berhasil dikirim untuk ditinjau.", "success")
+        return redirect(url(f"/user/product.php?id={product['_id']}"))
+    return render_template("contribute.html", product_id=product_id, title="Kontribusi")
+
+
+# ---------------------------------------------------------------------------
+# API
+# ---------------------------------------------------------------------------
+
 @app.post(f"{BASE_PATH}/api/bookmark.php")
 @login_required
 def api_bookmark():
-    product_id = request.form.get("product_id", "")
-    try:
-        ObjectId(product_id)
-    except Exception:
+    product = find_product_by_id(request.form.get("product_id", ""))
+    if not product:
         return jsonify({"ok": False, "error": "product_id tidak valid"}), 400
+    product_id = str(product["_id"])
     conn = mysql_connection()
     try:
         cur = conn.cursor()
@@ -737,7 +869,7 @@ def api_bookmark():
 @app.get(f"{BASE_PATH}/api/recommend.php")
 @login_required
 def api_recommend():
-    limit = min(24, max(1, int(request.args.get("limit", 12))))
+    limit = min(24, max(1, to_int(request.args.get("limit"), 12)))
     return jsonify({"ok": True, "recommendations": [{"id": p["_id"], "name": p["name"], "price": p.get("price", 0), "brand": p.get("brand", "")} for p in products_from_mongo(limit=limit)]})
 
 
@@ -747,7 +879,7 @@ def api_autocomplete():
     query = request.args.get("q", "").strip()
     if not query:
         return jsonify({"ok": True, "suggestions": []})
-    regex = {"$regex": query, "$options": "i"}
+    regex = {"$regex": re.escape(query), "$options": "i"}
     products = products_from_mongo({"$or": [{"name": regex}, {"brand": regex}, {"tags": regex}]}, limit=8)
     return jsonify({"ok": True, "suggestions": [{"id": p["_id"], "name": p["name"], "brand": p.get("brand", "")} for p in products]})
 
@@ -755,35 +887,11 @@ def api_autocomplete():
 @app.get(f"{BASE_PATH}/api/product_search.php")
 @login_required
 def api_product_search():
-    source = find_product_by_id(request.args.get("product", "").strip())
+    source = find_product_by_id(request.args.get("product", ""))
     if not source:
         return jsonify({"ok": False, "error": "Produk tidak ditemukan"}), 404
     alternatives = products_from_mongo({"category_id": source.get("category_id"), "_id": {"$ne": source["_id"]}}, limit=4)
     return jsonify({"ok": True, "alternatives": [{"id": p["_id"], "name": p["name"], "brand": p.get("brand", ""), "price": p.get("price", 0)} for p in alternatives]})
-
-@app.route(f"{BASE_PATH}/user/contribute.php", methods=["GET", "POST"])
-@login_required
-def contribute():
-    product_id = request.args.get("product") or request.form.get("product_id", "")
-    if request.method == "POST":
-        contribution_type = request.form.get("type", "allergen_claim")
-        payload = {"new_value": request.form.get("new_value", "")[:500], "note": request.form.get("note", "")[:1000]}
-        try:
-            object_id = ObjectId(product_id)
-        except Exception:
-            flash("Produk tidak valid.", "danger")
-            return redirect(url("/user/browse.php"))
-        result = mongo_collection("contributions").insert_one({"product_id": object_id, "user_id": current_user()["id"], "type": contribution_type, "payload": payload, "attachments": []})
-        conn = mysql_connection()
-        try:
-            cur = conn.cursor()
-            cur.execute("INSERT INTO contribution_status (contribution_id) VALUES (%s)", (str(result.inserted_id),))
-            conn.commit()
-        finally:
-            conn.close()
-        flash("Kontribusi berhasil dikirim untuk ditinjau.", "success")
-        return redirect(url(f"/user/product.php?id={product_id}"))
-    return render_template("contribute.html", product_id=product_id, title="Kontribusi")
 
 
 @app.get(f"{BASE_PATH}/api/health")
