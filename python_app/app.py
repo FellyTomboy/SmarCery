@@ -37,7 +37,7 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024
 app = Flask(__name__, template_folder=str(ROOT / "templates"))
 app.secret_key = os.getenv("FLASK_SECRET", "smarcery-development-secret")
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
-app.config["MAX_CONTENT_LENGTH"] = MAX_IMAGE_SIZE
+app.config["MAX_CONTENT_LENGTH"] = MAX_IMAGE_SIZE * 5
 
 
 def mysql_connection():
@@ -69,10 +69,36 @@ def save_product_image(upload):
     )
     if not valid_header:
         raise ValueError("File yang diunggah bukan gambar yang valid.")
+    upload.stream.seek(0, 2)
+    file_size = upload.stream.tell()
+    upload.stream.seek(0)
+    if file_size > MAX_IMAGE_SIZE:
+        raise ValueError("Setiap foto maksimal berukuran 5 MB.")
     UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid.uuid4().hex}{extension}"
     upload.save(UPLOAD_FOLDER / filename)
     return f"{BASE_PATH}/uploads/{filename}"
+
+
+def save_product_images(uploads):
+    image_urls = []
+    try:
+        for upload in uploads:
+            if upload and upload.filename:
+                image_urls.append(save_product_image(upload))
+    except ValueError:
+        for image_url in image_urls:
+            delete_product_image(image_url)
+        raise
+    return image_urls
+
+
+def product_image_urls(product):
+    image_urls = list(product.get("image_urls") or [])
+    legacy_url = product.get("image_url")
+    if legacy_url and legacy_url not in image_urls:
+        image_urls.insert(0, legacy_url)
+    return image_urls
 
 
 def delete_product_image(image_url):
@@ -156,6 +182,36 @@ def analyze_product_image(image_url, product_type):
     return result
 
 
+def analyze_product_images(image_urls, product_type):
+    analyses = [analyze_product_image(image_url, product_type) for image_url in image_urls]
+    composition = []
+    allergens = []
+    nutrition = {}
+    notes = []
+    confidence_order = {"low": 0, "medium": 1, "high": 2}
+    confidence = "high"
+    for analysis in analyses:
+        for item in analysis.get("composition", []):
+            if item not in composition:
+                composition.append(item)
+        for allergen in analysis.get("allergens", []):
+            if allergen not in allergens:
+                allergens.append(allergen)
+        nutrition.update({key: value for key, value in analysis.get("nutrition", {}).items() if value is not None})
+        if analysis.get("notes"):
+            notes.append(analysis["notes"])
+        current_confidence = analysis.get("confidence", "low")
+        if confidence_order.get(current_confidence, 0) < confidence_order[confidence]:
+            confidence = current_confidence
+    return {
+        "composition": composition,
+        "nutrition": nutrition,
+        "allergens": allergens,
+        "confidence": confidence,
+        "notes": " ".join(dict.fromkeys(notes)),
+    }
+
+
 @app.get(f"{BASE_PATH}/uploads/<path:filename>")
 def product_upload(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
@@ -177,6 +233,7 @@ def products_from_mongo(query=None, limit=100):
     for product in docs:
         product["_id"] = str(product["_id"])
         product["category_name"] = categories.get(product.get("category_id"), "-")
+        product["image_urls"] = product_image_urls(product)
     return docs
 
 
@@ -356,6 +413,8 @@ def admin_product_form():
     if product_id:
         try:
             existing = mongo_collection().find_one({"_id": ObjectId(product_id)})
+            if existing:
+                existing["image_urls"] = product_image_urls(existing)
         except Exception:
             existing = None
     if request.method == "POST":
@@ -407,20 +466,24 @@ def admin_product_form():
         if not fields["name"]:
             flash("Nama produk wajib diisi.", "danger")
         else:
-            upload = request.files.get("image")
+            uploads = request.files.getlist("images") + request.files.getlist("camera_image")
             try:
-                image_url = save_product_image(upload)
+                new_image_urls = save_product_images(uploads)
             except ValueError as error:
                 flash(str(error), "danger")
             else:
-                fields["image_url"] = image_url or (existing or {}).get("image_url")
+                existing_image_urls = product_image_urls(existing or {})
+                image_urls = existing_image_urls + new_image_urls
+                fields["image_urls"] = image_urls
+                fields["image_url"] = image_urls[0] if image_urls else None
                 if request.form.get("analyze_image") == "1":
-                    if not image_url:
-                        flash("Pilih foto baru untuk dianalisis AI.", "warning")
+                    analysis_urls = new_image_urls or existing_image_urls
+                    if not analysis_urls:
+                        flash("Pilih minimal satu foto untuk dianalisis AI.", "warning")
                     else:
                         try:
                             product_type = "minuman" if fields["category_id"] == 5 else "makanan"
-                            analysis = analyze_product_image(image_url, product_type)
+                            analysis = analyze_product_images(analysis_urls, product_type)
                             attributes["composition"] = analysis["composition"]
                             nutrition = analysis["nutrition"]
                             basis = str(nutrition.get("basis", "")).casefold()
@@ -441,8 +504,6 @@ def admin_product_form():
                     fields["attributes"] = attributes
                 if existing:
                     mongo_collection().update_one({"_id": existing["_id"]}, {"$set": fields})
-                    if image_url:
-                        delete_product_image(existing.get("image_url"))
                     flash("Produk diperbarui.", "success")
                 else:
                     mongo_collection().insert_one(fields)
@@ -476,6 +537,7 @@ def product_detail():
         return redirect(url("/user/browse.php"))
     product["_id"] = str(product["_id"])
     product["category_name"] = category_map().get(product.get("category_id"), "-")
+    product["image_urls"] = product_image_urls(product)
     return render_template("product.html", product=product, title=product.get("name", "Produk"))
 
 

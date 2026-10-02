@@ -54,10 +54,14 @@ h1, h2, h3, h4, h5 { color: var(--nutri-fg); letter-spacing: -.25px; }
 .nutrition-grid { background: #fdfcf9; border: 1px solid var(--nutri-border); border-radius: 12px; padding: 1rem; }
 .ai-result { background: var(--nutri-green-soft); border: 1px solid #c8e7d2; border-radius: 12px; color: #245b3d; font-size: .84rem; line-height: 1.55; padding: 1rem 1.1rem; }
 .ai-result-title { align-items: center; display: flex; font-size: .95rem; font-weight: 700; gap: .5rem; margin-bottom: .35rem; }
+.product-gallery { display: grid; gap: .5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.product-gallery-image { border-radius: 10px; height: 120px; object-fit: cover; width: 100%; }
+.product-gallery-primary { grid-column: 1 / -1; height: 330px; object-fit: contain; }
 
 @media (max-width: 700px) {
   .navbar > .container-xl { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
   .navbar .d-flex { flex-wrap: wrap; gap: 8px !important; width: 100%; }
   main.container-xl { padding-left: 16px !important; padding-right: 16px !important; }
   .h2 { font-size: 23px; }
+  .product-gallery-primary { height: 260px; }
 }
